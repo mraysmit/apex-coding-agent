@@ -2,7 +2,7 @@
 
 Author 
 
-A detailed guide to how the **apex-ai-agent** project works, how it integrates with the **apex-rules-engine**, and how the hybrid RAG knowledge system enables accurate APEX YAML generation.
+A detailed guide to how the **apex-coding-agent** project works, how it integrates with the **apex-rules-engine**, and how the hybrid RAG knowledge system enables accurate APEX YAML generation.
 
 ---
 
@@ -26,7 +26,7 @@ A detailed guide to how the **apex-ai-agent** project works, how it integrates w
 
 ## Overview
 
-The **apex-ai-agent** is an AI-powered coding assistant built on Spring Boot and Spring AI. Its primary mission is to **generate, validate, and execute APEX YAML business rule configurations** from natural language requirements.
+The **apex-coding-agent** is an AI-powered coding assistant built on Spring Boot and Spring AI. Its primary mission is to **generate, validate, and execute APEX YAML business rule configurations** from natural language requirements.
 
 It works by giving an LLM (GPT-4o) access to a curated set of tools that can:
 - Look up APEX syntax rules and templates
@@ -44,7 +44,7 @@ The LLM orchestrates these tools autonomously, following a strict plan → retri
 
 | Component | Technology | Version |
 |---|---|---|
-| Runtime | Java | 23 |
+| Runtime | Java | 25 |
 | Framework | Spring Boot | 4.0.2 |
 | AI Framework | Spring AI | 2.0.0-M2 |
 | LLM | OpenAI GPT-4o | via `spring-ai-starter-model-openai-sdk` |
@@ -60,9 +60,11 @@ The LLM orchestrates these tools autonomously, following a strict plan → retri
 ## Project Structure
 
 ```
-apex-ai-agent/
-├── src/main/java/dev/mars/apexaiagent/
-│   ├── Application.java                    # Spring Boot entry point, bean wiring
+apex-coding-agent/
+├── src/main/java/dev/mars/apexcodingagent/
+│   ├── Application.java                    # Spring Boot entry point
+│   ├── AgentConfig.java                    # Bean wiring (services, vector store, ChatClient)
+│   ├── ReplRunner.java                     # CLI REPL (app.repl.enabled)
 │   ├── rag/
 │   │   └── ApexKnowledgeIngester.java      # Vector store ingestion pipeline
 │   ├── tools/
@@ -75,15 +77,17 @@ apex-ai-agent/
 │   ├── orchestration/
 │   │   ├── ApexGenerationService.java      # Generation pipeline orchestrator
 │   │   ├── ApexGenerateCommand.java        # Tool wrapper for REPL/Web access
-│   │   ├── GenerationRequest.java          # Request record
-│   │   ├── GenerationResult.java           # Result record with validation report
-│   │   └── OutputPackager.java             # Parses LLM output into files
+│   │   ├── ApexDescriptionService.java     # YAML → business description
+│   │   ├── ApexDescribeCommand.java        # Tool wrapper for description
+│   │   ├── OutputPackager.java             # Parses LLM output into files
+│   │   └── model/                          # Request/result records (Generation*, Description*)
 │   └── web/
 │       └── ApexGenerationController.java   # REST API for web UI
 ├── src/main/resources/
 │   ├── application.yaml                    # Spring config
 │   ├── prompts/
-│   │   └── apex-generation-system.txt      # APEX generation system prompt
+│   │   ├── apex-generation-system.txt      # APEX generation system prompt
+│   │   └── coding-agent-system.txt         # REPL coding-agent system prompt
 │   ├── static/
 │   │   └── index.html                      # Web UI
 │   └── logback.xml                         # Logging config
@@ -384,12 +388,12 @@ To force re-ingestion, delete `knowledge/apex-vector-store.json` and restart. Or
 
 ## Interaction with apex-rules-engine
 
-The apex-ai-agent interacts with the apex-rules-engine project at **three levels**:
+The apex-coding-agent interacts with the apex-rules-engine project at **three levels**:
 
 ### Level 1: Compile-Time Library Dependencies
 
 ```xml
-<!-- In apex-ai-agent/pom.xml -->
+<!-- In apex-coding-agent/pom.xml -->
 <dependency>
     <groupId>com.apex</groupId>
     <artifactId>apex-core</artifactId>
@@ -402,7 +406,7 @@ The apex-ai-agent interacts with the apex-rules-engine project at **three levels
 </dependency>
 ```
 
-These give the apex-ai-agent access to:
+These give the apex-coding-agent access to:
 - **APEX Compiler** — `ApexCompileTool` calls the real APEX compiler to validate YAML syntax, check for unknown keywords, verify SpEL expressions, and compile rule definitions into executable form
 - **APEX Core Engine** — `ApexExecuteTool` calls the real engine to execute compiled rules against JSON fact data, returning per-rule results (triggered, message, severity, pass/fail)
 
@@ -427,7 +431,7 @@ The `knowledge/apex-syntax-compact.yaml` file is a curated APEX syntax reference
 The `ApexKnowledgeIngester` **reads files directly from the apex-rules-engine project directory** at startup:
 
 ```
-apex-ai-agent/                     apex-rules-engine/
+apex-coding-agent/                     apex-rules-engine/
     │                                │
     │  ← reads .md files from →      ├── docs/*.md
     │  ← reads .yaml files from →    ├── apex-playground/examples/**/*.yaml
@@ -440,7 +444,7 @@ apex-ai-agent/                     apex-rules-engine/
 The default location assumes both projects are siblings:
 ```
 parent-directory/
-├── apex-ai-agent/          ← this project
+├── apex-coding-agent/          ← this project
 └── apex-rules-engine/   ← the rules engine project
 ```
 
@@ -580,7 +584,7 @@ apex:
 
 ### Prerequisites
 
-1. Java 23+
+1. Java 25+
 2. The `apex-rules-engine` project built and installed locally:
    ```bash
    cd ../apex-rules-engine
@@ -591,7 +595,7 @@ apex:
 ### Build
 
 ```bash
-cd apex-ai-agent
+cd apex-coding-agent
 ./mvnw clean package
 ```
 

@@ -1,6 +1,6 @@
 spring:
   application:
-    name: apex-ai-agent
+    name: apex-coding-agent
   ai:
     openai-sdk:
       api-key: ${OPENAI_API_KEY}

@@ -50,8 +50,8 @@ Type `exit` to quit the REPL.
 
 ```bash
 ./mvnw clean package -DskipTests
-java -jar target/apex-ai-agent-0.0.1-SNAPSHOT.jar                    # Web UI on port 8080
-java -jar target/apex-ai-agent-0.0.1-SNAPSHOT.jar --app.repl.enabled=true  # CLI REPL
+java -jar target/apex-coding-agent-0.0.1-SNAPSHOT.jar                    # Web UI on port 8080
+java -jar target/apex-coding-agent-0.0.1-SNAPSHOT.jar --app.repl.enabled=true  # CLI REPL
 ```
 
 ## Configuration
@@ -68,16 +68,22 @@ Key properties in `src/main/resources/application.yaml`:
 
 ## Prerequisites
 
-- Java 23+
+- Java 25+
 - [OpenAI API key](https://platform.openai.com/api-keys)
+- The sibling [`apex-rules-engine`](../apex-rules-engine) project, built and installed to your local Maven repository. `apex-core` and `apex-compiler` are `1.0-SNAPSHOT` dependencies that aren't published anywhere else, so the build fails without them:
+  ```bash
+  cd ../apex-rules-engine
+  mvn clean install -DskipTests
+  ```
+  The knowledge base (`apex.knowledge.enabled=true`) also reads that project's sources from `apex.knowledge.project-root`.
 
 ## Architecture
 
-Everything lives in [`Application.java`](src/main/java/dev/mars/apexaiagent/Application.java). The `ChatClient` bean is configured with:
+[`Application.java`](src/main/java/dev/mars/apexcodingagent/Application.java) is the entry point. Beans are wired in [`AgentConfig.java`](src/main/java/dev/mars/apexcodingagent/AgentConfig.java), and the CLI REPL lives in [`ReplRunner.java`](src/main/java/dev/mars/apexcodingagent/ReplRunner.java). The `ChatClient` bean is configured with:
 
 | Component | Purpose |
 |---|---|
-| System prompt | Injects working directory and OS so the model knows where it is |
+| System prompt | Loaded from `prompts/coding-agent-system.txt`, with working directory and OS injected |
 | `FileSystemTools` | Read, write, and list files |
 | `GrepTool` | Search file contents by pattern |
 | `GlobTool` | Find files by name/path pattern |
@@ -96,7 +102,7 @@ The optional **REPL** loop reads input, sends it to GPT-4o with tool context, an
 | Spring Boot | 4.0.2 |
 | Spring AI | 2.0.0-M2 |
 | [spring-ai-agent-utils](https://github.com/springaicommunity/spring-ai-agent-utils) | 0.4.2 |
-| Java | 23 |
+| Java | 25 |
 
 ## Tests
 
@@ -109,6 +115,10 @@ The optional **REPL** loop reads input, sends it to GPT-4o with tool context, an
 | `ChatClientConfigTests` | Verifies ChatClient wiring (system prompt, tools, advisors). No LLM call. |
 | `ReplTests` | REPL control flow (exit, empty input, EOF). No Spring context. |
 | `ApplicationTests` | End-to-end smoke test with a real LLM call. Requires `OPENAI_API_KEY`. |
+
+## Output
+
+Each generation run writes its files to `generated/apex/<request-id>/` (rules, sample data, validation report). The folder is git-ignored; a sample passing run is kept in [`docs/examples/order-discount/`](docs/examples/order-discount/).
 
 ## Swapping Models
 

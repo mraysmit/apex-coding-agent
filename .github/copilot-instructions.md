@@ -6,7 +6,7 @@ This is an AI-powered APEX rules agent built with **Spring Boot 4.0.2** and **Sp
 
 ## Tech Stack
 
-- **Java 23** (source level)
+- **Java 25** (source level)
 - **Spring Boot 4.0.2**
 - **Spring AI 2.0.0-M2** (via BOM)
 - **Spring AI Agent Utils 0.4.2** (`org.springaicommunity:spring-ai-agent-utils`) — provides `FileSystemTools`, `GrepTool`, `GlobTool`, `ShellTools`
@@ -15,7 +15,7 @@ This is an AI-powered APEX rules agent built with **Spring Boot 4.0.2** and **Sp
 
 ## Architecture
 
-- The application is a Spring Boot CLI app using `CommandLineRunner`.
+- The application is a Spring Boot web app (REST API under `/api/apex` + static UI) with an optional CLI REPL (`ReplRunner`, a `CommandLineRunner`, enabled via `app.repl.enabled`).
 - A `ChatClient` is built with:
   - A system prompt injected with the current working directory.
   - Default tools: `FileSystemTools`, `GrepTool`, `GlobTool`, `ShellTools`.
@@ -26,10 +26,11 @@ This is an AI-powered APEX rules agent built with **Spring Boot 4.0.2** and **Sp
 
 ## Code Conventions
 
-- Package root: `dev.mars.apexaiagent`
-- Single-class application pattern — keep it concise and self-contained.
+- Package root: `dev.mars.apexcodingagent`
+- `Application` is the entry point only; beans are wired in `AgentConfig`, the REPL lives in `ReplRunner`.
+- Request/result records live in `orchestration.model`.
 - Use Spring AI's fluent `ChatClient.Builder` API for configuration.
-- Use text blocks (`"""`) for multi-line strings like system prompts.
+- System prompts live in `src/main/resources/prompts/` with `{{placeholder}}` substitution, not inline in code.
 - Tools are created via their builder patterns (e.g., `FileSystemTools.builder().build()`).
 - Pass runtime context to tools via `toolContext(Map.of(...))`.
 

@@ -34,7 +34,6 @@ build/
 
 ### VS Code ###
 .vscode/
-git ls-files | grep -i log
 ### Mac OS ###
 .DS_Store
 
@@ -68,4 +67,7 @@ LOGS/
 .idea/AugmentWebviewStateStore.xml
 .history*
 .idea/statistic.xml
-apex-core/apex-data-sync/reports/
+
+### Agent runtime output ###
+/generated/
+/knowledge/apex-vector-store.json
