@@ -22,7 +22,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 @SpringBootTest
 @TestPropertySource(properties = {
-		"spring.ai.openai-sdk.api-key=sk-test-dummy-key",
+		"spring.ai.openai.api-key=sk-test-dummy-key",
 		"app.repl.enabled=false",
 		"apex.knowledge.enabled=false"
 })
@@ -67,7 +67,7 @@ class ChatClientConfigTests {
 				.map(a -> a.getClass().getSimpleName())
 				.toList();
 
-		assertThat(advisorTypes).contains("ToolCallAdvisor");
+		assertThat(advisorTypes).contains("ToolCallingAdvisor");
 		assertThat(advisorTypes).contains("MessageChatMemoryAdvisor");
 	}
 
@@ -123,12 +123,12 @@ class ChatClientConfigTests {
 				.getAdvisors().stream()
 				.map(a -> a.getClass().getSimpleName())
 				.toList();
-		// Should have exactly one ToolCallAdvisor, not multiple from builder sharing
+		// Should have exactly one ToolCallingAdvisor, not multiple from builder sharing
 		long toolCallAdvisorCount = advisors.stream()
-				.filter(n -> n.equals("ToolCallAdvisor"))
+				.filter(n -> n.equals("ToolCallingAdvisor"))
 				.count();
 		assertThat(toolCallAdvisorCount)
-				.as("REPL client should have exactly 1 ToolCallAdvisor, not duplicates from shared builder")
+				.as("REPL client should have exactly 1 ToolCallingAdvisor, not duplicates from shared builder")
 				.isEqualTo(1);
 	}
 
@@ -139,12 +139,12 @@ class ChatClientConfigTests {
 				.getAdvisors().stream()
 				.map(a -> a.getClass().getSimpleName())
 				.toList();
-		// Should have exactly one ToolCallAdvisor
+		// Should have exactly one ToolCallingAdvisor
 		long toolCallAdvisorCount = advisors.stream()
-				.filter(n -> n.equals("ToolCallAdvisor"))
+				.filter(n -> n.equals("ToolCallingAdvisor"))
 				.count();
 		assertThat(toolCallAdvisorCount)
-				.as("APEX client should have exactly 1 ToolCallAdvisor, not duplicates from shared builder")
+				.as("APEX client should have exactly 1 ToolCallingAdvisor, not duplicates from shared builder")
 				.isEqualTo(1);
 	}
 

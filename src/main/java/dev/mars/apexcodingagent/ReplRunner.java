@@ -8,6 +8,7 @@ import org.springframework.stereotype.Component;
 import java.io.PrintStream;
 import java.util.Map;
 import java.util.Scanner;
+import java.util.function.Function;
 
 /**
  * Interactive command-line REPL over the coding-agent {@link ChatClient}.
@@ -26,10 +27,21 @@ class ReplRunner implements CommandLineRunner {
 
 	@Override
 	public void run(String... args) {
-		runRepl(chatClient, new Scanner(System.in), System.out);
+		runRepl(this::ask, new Scanner(System.in), System.out);
 	}
 
-	static void runRepl(ChatClient chatClient, Scanner scanner, PrintStream out) {
+	private String ask(String input) {
+		return chatClient.prompt(input)
+				.toolContext(Map.of("workingDir", System.getProperty("user.dir")))
+				.call().content();
+	}
+
+	/**
+	 * Runs the read-eval-print loop until "exit" or end of input.
+	 *
+	 * @param model sends one user message to the model and returns its reply (may be null)
+	 */
+	static void runRepl(Function<String, String> model, Scanner scanner, PrintStream out) {
 		out.println("🤖 APEX Coding Agent Ready. Ask me anything about your codebase!");
 
 		while (true) {
@@ -43,9 +55,7 @@ class ReplRunner implements CommandLineRunner {
 			if ("exit".equalsIgnoreCase(input.trim())) break;
 			if (input.isBlank()) continue;
 
-			String response = chatClient.prompt(input)
-						.toolContext(Map.of("workingDir", System.getProperty("user.dir")))
-						.call().content();
+			String response = model.apply(input);
 			out.println("\n" + (response != null ? response : "[No response from model]"));
 		}
 	}

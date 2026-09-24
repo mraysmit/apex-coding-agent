@@ -5,7 +5,7 @@
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>4.0.2</version>
+		<version>4.1.1</version>
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>dev.mars</groupId>
@@ -14,8 +14,8 @@
 	<name>apex-coding-agent</name>
 	<description>APEX Coding Agent</description>
 	<properties>
-		<java.version>25</java.version>
-		<spring-ai.version>2.0.0-M2</spring-ai.version>
+		<java.version>27</java.version>
+		<spring-ai.version>2.0.1</spring-ai.version>
 		<start-class>dev.mars.apexcodingagent.Application</start-class>
 	</properties>
 	<dependencies>
@@ -33,7 +33,7 @@
 
 		<dependency>
 			<groupId>org.springframework.ai</groupId>
-			<artifactId>spring-ai-starter-model-openai-sdk</artifactId>
+			<artifactId>spring-ai-starter-model-openai</artifactId>
 		</dependency>
 
 		<!-- Vector Store for RAG-based knowledge retrieval -->
@@ -43,14 +43,14 @@
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.ai</groupId>
-			<artifactId>spring-ai-advisors-vector-store</artifactId>
+			<artifactId>spring-ai-vector-store-advisor</artifactId>
 		</dependency>
 
 		<!-- Agent Utils -->
 		<dependency>
 			<groupId>org.springaicommunity</groupId>
 			<artifactId>spring-ai-agent-utils</artifactId>
-			<version>0.4.2</version>
+			<version>0.12.0</version>
 		</dependency>
 
 		<!-- APEX Rules Engine Integration -->
@@ -65,14 +65,35 @@
 			<version>1.0-SNAPSHOT</version>
 		</dependency>
 
+		<!-- Test -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-test</artifactId>
+			<artifactId>spring-boot-test</artifactId>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-webmvc-test</artifactId>
+			<groupId>org.springframework</groupId>
+			<artifactId>spring-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.junit.jupiter</groupId>
+			<artifactId>junit-jupiter</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.assertj</groupId>
+			<artifactId>assertj-core</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.hamcrest</groupId>
+			<artifactId>hamcrest</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>com.jayway.jsonpath</groupId>
+			<artifactId>json-path</artifactId>
 			<scope>test</scope>
 		</dependency>
 	</dependencies>

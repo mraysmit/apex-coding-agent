@@ -272,8 +272,8 @@
             <h2>Overview</h2>
             <p>
                 The APEX Coding Agent generates, validates, and executes <strong>APEX YAML business rule configurations</strong>
-                from natural language requirements. It is built with <strong>Spring Boot 4.0.2</strong> and
-                <strong>Spring AI 2.0.0-M2</strong>, using <strong>OpenAI GPT-4o</strong> as the backing LLM.
+                from natural language requirements. It is built with <strong>Spring Boot 4.1.1</strong> and
+                <strong>Spring AI 2.0.1</strong>, using <strong>OpenAI GPT-4o</strong> as the backing LLM.
             </p>
             <p style="margin-top: 0.5rem;">
                 The application supports two interfaces: a <strong>Web UI</strong> (this application) and an optional
@@ -291,7 +291,7 @@
 
             <h3>1. Autonomous Agent <span class="badge badge-agent">ReAct Loop</span></h3>
             <p>
-                The <code>ChatClient</code> is configured with a <code>ToolCallAdvisor</code> that enables autonomous
+                The <code>ChatClient</code> is configured with a <code>ToolCallingAdvisor</code> that enables autonomous
                 multi-step tool calling. The LLM receives a user prompt, decides which tools to invoke (file I/O, grep,
                 shell commands, APEX-specific tools), observes the results, and continues calling tools until it
                 produces a final answer. This is a classic <strong>ReAct-style agent loop</strong>.
@@ -331,7 +331,7 @@
                 </thead>
                 <tbody>
                     <tr>
-                        <td><code>ToolCallAdvisor</code></td>
+                        <td><code>ToolCallingAdvisor</code></td>
                         <td>Enables autonomous multi-step tool calling — the LLM decides what to call and when</td>
                     </tr>
                     <tr>
@@ -442,7 +442,7 @@
                         <td>Path to the APEX rules engine project for knowledge ingestion.</td>
                     </tr>
                     <tr>
-                        <td><code>spring.ai.openai-sdk.chat.options.model</code></td>
+                        <td><code>spring.ai.openai.chat.options.model</code></td>
                         <td><code>gpt-4o</code></td>
                         <td>The LLM model to use for generation and chat.</td>
                     </tr>
@@ -489,10 +489,10 @@ java -jar target/apex-coding-agent-0.0.1-SNAPSHOT.jar</pre>
                     <tr><th>Component</th><th>Version</th></tr>
                 </thead>
                 <tbody>
-                    <tr><td>Java</td><td>25</td></tr>
-                    <tr><td>Spring Boot</td><td>4.0.2</td></tr>
-                    <tr><td>Spring AI</td><td>2.0.0-M2</td></tr>
-                    <tr><td>spring-ai-agent-utils</td><td>0.4.2</td></tr>
+                    <tr><td>Java</td><td>27</td></tr>
+                    <tr><td>Spring Boot</td><td>4.1.1</td></tr>
+                    <tr><td>Spring AI</td><td>2.0.1</td></tr>
+                    <tr><td>spring-ai-agent-utils</td><td>0.12.0</td></tr>
                     <tr><td>LLM</td><td>OpenAI GPT-4o</td></tr>
                 </tbody>
             </table>

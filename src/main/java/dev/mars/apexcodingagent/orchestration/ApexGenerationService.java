@@ -6,7 +6,7 @@ import dev.mars.apexcodingagent.tools.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.chat.client.advisor.ToolCallAdvisor;
+import org.springframework.ai.chat.client.advisor.ToolCallingAdvisor;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.vectorstore.VectorStore;
 
@@ -30,7 +30,7 @@ import java.util.Map;
  * The LLM has access to all APEX tools (syntax, examples, compile, execute, expectations)
  * and is instructed to follow a strict workflow with up to 3 retries per artifact.
  */
-public class ApexGenerationService {
+public class ApexGenerationService implements ApexRuleGenerator {
 
     private static final Logger log = LoggerFactory.getLogger(ApexGenerationService.class);
     private static final int DEFAULT_MAX_ATTEMPTS = 3;
@@ -60,6 +60,7 @@ public class ApexGenerationService {
      * @param request the generation request containing requirements and data structure
      * @return the generation result with files, validation report, and summary
      */
+    @Override
     public GenerationResult generate(GenerationRequest request) {
         log.info("Starting APEX generation for request: {}", request.requestId());
         log.debug("Request details — requirements length: {}, dataStructure length: {}, hints: {}",
@@ -270,7 +271,7 @@ public class ApexGenerationService {
             //
             // NOTE: conversationHistoryEnabled must be true (the default) so that
             // during tool-call loops, the full conversation [system, user, assistant(tool_calls),
-            // tool(result)] is sent to the model. When false, ToolCallAdvisor strips
+            // tool(result)] is sent to the model. When false, ToolCallingAdvisor strips
             // the context to [system, lastToolResult], violating OpenAI's constraint
             // that 'tool' messages must follow an assistant message with 'tool_calls'.
 
@@ -290,7 +291,7 @@ public class ApexGenerationService {
                     .defaultSystem(loadSystemPrompt(null))
                     .defaultTools(tools.toArray())
                     .defaultAdvisors(
-                            ToolCallAdvisor.builder().build()
+                            ToolCallingAdvisor.builder().build()
                     )
                     .build();
 

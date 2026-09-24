@@ -17,10 +17,12 @@ import dev.mars.apexcodingagent.orchestration.ApexGenerationService;
 import dev.mars.apexcodingagent.rag.ApexKnowledgeIngester;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
-import org.springframework.ai.chat.client.advisor.ToolCallAdvisor;
+import org.springframework.ai.chat.client.advisor.ToolCallingAdvisor;
+import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.memory.MessageWindowChatMemory;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.embedding.EmbeddingModel;
+import org.jspecify.annotations.Nullable;
 import org.springframework.ai.vectorstore.SimpleVectorStore;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -40,6 +42,7 @@ import java.nio.file.Path;
 class AgentConfig {
 
 	private static final String SYSTEM_PROMPT_RESOURCE = "/prompts/coding-agent-system.txt";
+	private static final String CONVERSATION_ID = "default";
 
 	@Bean
 	@ConditionalOnProperty(name = "apex.knowledge.enabled", havingValue = "true", matchIfMissing = true)
@@ -56,7 +59,7 @@ class AgentConfig {
 
 	@Bean
 	ApexGenerationService apexGenerationService(ChatModel chatModel,
-												@org.springframework.lang.Nullable SimpleVectorStore apexVectorStore) {
+												@Nullable SimpleVectorStore apexVectorStore) {
 		var builder = ApexGenerationService.builder()
 				.chatModel(chatModel)
 				.outputDir(Path.of("generated", "apex"))
@@ -77,7 +80,7 @@ class AgentConfig {
 	@Bean
 	ChatClient chatClient(ChatClient.Builder chatClientBuilder, ApexGenerationService apexGenerationService,
 						  ApexDescriptionService apexDescriptionService,
-						  @org.springframework.lang.Nullable SimpleVectorStore apexVectorStore) {
+						  @Nullable SimpleVectorStore apexVectorStore) {
 		var tools = new java.util.ArrayList<Object>();
 		tools.add(FileSystemTools.builder().build());
 		tools.add(GrepTool.builder().build());
@@ -97,12 +100,14 @@ class AgentConfig {
 		return chatClientBuilder.clone()
 				.defaultSystem(systemPrompt())
 				.defaultTools(tools.toArray())
-				.defaultAdvisors(
-						ToolCallAdvisor.builder().conversationHistoryEnabled(false).build(),
-						MessageChatMemoryAdvisor.builder(
-								MessageWindowChatMemory.builder().maxMessages(50).build()
-						).build()
-				)
+				.defaultAdvisors(advisors -> advisors
+						.advisors(
+								ToolCallingAdvisor.builder().conversationHistoryEnabled(false).build(),
+								MessageChatMemoryAdvisor.builder(
+										MessageWindowChatMemory.builder().maxMessages(50).build()
+								).build())
+						// Spring AI 2.0 no longer defaults the conversation id; the REPL is a single conversation
+						.param(ChatMemory.CONVERSATION_ID, CONVERSATION_ID))
 				.build();
 	}
 

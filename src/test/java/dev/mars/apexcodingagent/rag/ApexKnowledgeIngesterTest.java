@@ -5,6 +5,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.embedding.EmbeddingModel;
+import org.springframework.ai.embedding.EmbeddingRequest;
+import org.springframework.ai.embedding.EmbeddingResponse;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -12,7 +14,6 @@ import java.nio.file.Path;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.*;
-import static org.mockito.Mockito.*;
 
 /**
  * Unit tests for ApexKnowledgeIngester.
@@ -28,9 +29,8 @@ class ApexKnowledgeIngesterTest {
 
     @BeforeEach
     void setUp() {
-        EmbeddingModel mockEmbeddingModel = mock(EmbeddingModel.class);
         ingester = ApexKnowledgeIngester.builder()
-                .embeddingModel(mockEmbeddingModel)
+                .embeddingModel(new UnusedEmbeddingModel())
                 .apexProjectRoot(tempDir)
                 .vectorStorePath(tempDir.resolve("vector-store.json"))
                 .build();
@@ -300,10 +300,25 @@ class ApexKnowledgeIngesterTest {
 
     @Test
     void builder_appliesDefaults() {
-        EmbeddingModel mockModel = mock(EmbeddingModel.class);
         ApexKnowledgeIngester built = ApexKnowledgeIngester.builder()
-                .embeddingModel(mockModel)
+                .embeddingModel(new UnusedEmbeddingModel())
                 .build();
         assertThat(built).isNotNull();
+    }
+
+    // ---- Test double ----
+
+    /** Satisfies the builder; these tests never embed anything, so any call fails loudly. */
+    static class UnusedEmbeddingModel implements EmbeddingModel {
+
+        @Override
+        public EmbeddingResponse call(EmbeddingRequest request) {
+            throw new UnsupportedOperationException("embedding not expected in this test");
+        }
+
+        @Override
+        public float[] embed(Document document) {
+            throw new UnsupportedOperationException("embedding not expected in this test");
+        }
     }
 }

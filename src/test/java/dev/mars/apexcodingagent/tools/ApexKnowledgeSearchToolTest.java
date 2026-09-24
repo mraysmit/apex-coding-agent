@@ -5,27 +5,28 @@ import org.junit.jupiter.api.Test;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
+import org.springframework.ai.vectorstore.filter.Filter;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
 import static org.assertj.core.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
 
 /**
  * Unit tests for ApexKnowledgeSearchTool semantic search functionality.
  */
 class ApexKnowledgeSearchToolTest {
 
-    VectorStore mockVectorStore;
+    FakeVectorStore vectorStore;
     ApexKnowledgeSearchTool searchTool;
 
     @BeforeEach
     void setUp() {
-        mockVectorStore = mock(VectorStore.class);
+        vectorStore = new FakeVectorStore();
         searchTool = ApexKnowledgeSearchTool.builder()
-                .vectorStore(mockVectorStore)
+                .vectorStore(vectorStore)
                 .build();
     }
 
@@ -38,8 +39,7 @@ class ApexKnowledgeSearchToolTest {
                 Map.of("source", "examples/enrichment-group.yaml", "contentType", "yaml-example",
                         "category", "enrichments", "docType", "rule-config"));
 
-        when(mockVectorStore.similaritySearch(any(SearchRequest.class)))
-                .thenReturn(List.of(doc1, doc2));
+        vectorStore.onSearch = request -> List.of(doc1, doc2);
 
         String result = searchTool.semanticSearch("enrichment groups", 5);
 
@@ -53,8 +53,7 @@ class ApexKnowledgeSearchToolTest {
 
     @Test
     void semanticSearch_noResults() {
-        when(mockVectorStore.similaritySearch(any(SearchRequest.class)))
-                .thenReturn(List.of());
+        vectorStore.onSearch = request -> List.of();
 
         String result = searchTool.semanticSearch("nonexistent topic", 5);
 
@@ -63,8 +62,7 @@ class ApexKnowledgeSearchToolTest {
 
     @Test
     void semanticSearch_nullResults() {
-        when(mockVectorStore.similaritySearch(any(SearchRequest.class)))
-                .thenReturn(null);
+        vectorStore.onSearch = request -> null;
 
         String result = searchTool.semanticSearch("anything", 5);
 
@@ -73,27 +71,30 @@ class ApexKnowledgeSearchToolTest {
 
     @Test
     void semanticSearch_defaultsTopKWhenNull() {
-        when(mockVectorStore.similaritySearch(any(SearchRequest.class)))
-                .thenReturn(List.of());
+        vectorStore.onSearch = request -> List.of();
 
         // Should not throw even with null topK
         String result = searchTool.semanticSearch("query", null);
         assertThat(result).isNotNull();
+        assertThat(vectorStore.requests).singleElement()
+                .extracting(SearchRequest::getTopK).isEqualTo(5);
     }
 
     @Test
     void semanticSearch_defaultsTopKWhenZero() {
-        when(mockVectorStore.similaritySearch(any(SearchRequest.class)))
-                .thenReturn(List.of());
+        vectorStore.onSearch = request -> List.of();
 
         String result = searchTool.semanticSearch("query", 0);
         assertThat(result).isNotNull();
+        assertThat(vectorStore.requests).singleElement()
+                .extracting(SearchRequest::getTopK).isEqualTo(5);
     }
 
     @Test
     void semanticSearch_handlesException() {
-        when(mockVectorStore.similaritySearch(any(SearchRequest.class)))
-                .thenThrow(new RuntimeException("Connection timeout"));
+        vectorStore.onSearch = request -> {
+            throw new RuntimeException("Connection timeout");
+        };
 
         String result = searchTool.semanticSearch("query", 5);
 
@@ -106,8 +107,7 @@ class ApexKnowledgeSearchToolTest {
         String longContent = "x".repeat(3000);
         Document doc = new Document(longContent, Map.of("source", "file.md"));
 
-        when(mockVectorStore.similaritySearch(any(SearchRequest.class)))
-                .thenReturn(List.of(doc));
+        vectorStore.onSearch = request -> List.of(doc);
 
         String result = searchTool.semanticSearch("query", 1);
 
@@ -126,8 +126,7 @@ class ApexKnowledgeSearchToolTest {
                         "category", "validation",
                         "features", "rules,enrichments"));
 
-        when(mockVectorStore.similaritySearch(any(SearchRequest.class)))
-                .thenReturn(List.of(doc));
+        vectorStore.onSearch = request -> List.of(doc);
 
         String result = searchTool.semanticSearch("query", 1);
 
@@ -150,10 +149,40 @@ class ApexKnowledgeSearchToolTest {
 
     @Test
     void builder_createsToolSuccessfully() {
-        VectorStore store = mock(VectorStore.class);
+        VectorStore store = new FakeVectorStore();
         ApexKnowledgeSearchTool tool = ApexKnowledgeSearchTool.builder()
                 .vectorStore(store)
                 .build();
         assertThat(tool).isNotNull();
+    }
+
+    // ---- Test double ----
+
+    /** Records search requests and answers them with {@link #onSearch}. Write operations are unsupported. */
+    static class FakeVectorStore implements VectorStore {
+
+        final List<SearchRequest> requests = new ArrayList<>();
+        Function<SearchRequest, List<Document>> onSearch = request -> List.of();
+
+        @Override
+        public List<Document> similaritySearch(SearchRequest request) {
+            requests.add(request);
+            return onSearch.apply(request);
+        }
+
+        @Override
+        public void add(List<Document> documents) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void delete(List<String> idList) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void delete(Filter.Expression filterExpression) {
+            throw new UnsupportedOperationException();
+        }
     }
 }

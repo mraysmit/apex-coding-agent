@@ -1,96 +1,74 @@
 package dev.mars.apexcodingagent;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.ai.chat.client.ChatClient;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
-import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Scanner;
+import java.util.function.Function;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.*;
 
 /**
  * Lightweight unit tests for the REPL loop control flow.
- * No Spring context needed.
+ * No Spring context needed — the model is a recording lambda.
  */
 class ReplTests {
 
+	final List<String> prompts = new ArrayList<>();
+
+	Function<String, String> modelReplying(String reply) {
+		return input -> {
+			prompts.add(input);
+			return reply;
+		};
+	}
+
+	String run(String input, Function<String, String> model) {
+		Scanner scanner = new Scanner(new ByteArrayInputStream(input.getBytes()));
+		ByteArrayOutputStream output = new ByteArrayOutputStream();
+		ReplRunner.runRepl(model, scanner, new PrintStream(output));
+		return output.toString();
+	}
+
 	@Test
 	void exitCommandTerminatesWithoutCallingModel() {
-		ChatClient chatClient = mock(ChatClient.class, RETURNS_DEEP_STUBS);
+		String output = run("exit\n", modelReplying("unused"));
 
-		Scanner scanner = new Scanner(new ByteArrayInputStream("exit\n".getBytes()));
-		ByteArrayOutputStream output = new ByteArrayOutputStream();
-
-		ReplRunner.runRepl(chatClient, scanner, new PrintStream(output));
-
-		assertThat(output.toString()).contains("APEX Coding Agent Ready");
-		verify(chatClient, never()).prompt(anyString());
+		assertThat(output).contains("APEX Coding Agent Ready");
+		assertThat(prompts).isEmpty();
 	}
 
 	@Test
 	void userInputIsSentToModelAndResponsePrinted() {
-		ChatClient chatClient = mock(ChatClient.class, RETURNS_DEEP_STUBS);
-		when(chatClient.prompt(anyString()).toolContext(any(Map.class)).call().content())
-				.thenReturn("Here is the answer");
-		clearInvocations(chatClient);
+		String output = run("What does this code do?\nexit\n", modelReplying("Here is the answer"));
 
-		String input = "What does this code do?\nexit\n";
-		Scanner scanner = new Scanner(new ByteArrayInputStream(input.getBytes()));
-		ByteArrayOutputStream output = new ByteArrayOutputStream();
-
-		ReplRunner.runRepl(chatClient, scanner, new PrintStream(output));
-
-		assertThat(output.toString()).contains("Here is the answer");
+		assertThat(prompts).containsExactly("What does this code do?");
+		assertThat(output).contains("Here is the answer");
 	}
 
 	@Test
 	void noInteractiveTerminalExitsGracefully() {
-		ChatClient chatClient = mock(ChatClient.class, RETURNS_DEEP_STUBS);
+		String output = run("", modelReplying("unused"));
 
-		Scanner scanner = new Scanner(new ByteArrayInputStream(new byte[0]));
-		ByteArrayOutputStream output = new ByteArrayOutputStream();
-
-		ReplRunner.runRepl(chatClient, scanner, new PrintStream(output));
-
-		assertThat(output.toString()).contains("No interactive terminal detected");
-		verify(chatClient, never()).prompt(anyString());
+		assertThat(output).contains("No interactive terminal detected");
+		assertThat(prompts).isEmpty();
 	}
 
 	@Test
 	void blankInputIsSkippedWithoutCallingModel() {
-		ChatClient chatClient = mock(ChatClient.class, RETURNS_DEEP_STUBS);
-		when(chatClient.prompt(anyString()).toolContext(any(Map.class)).call().content())
-				.thenReturn("response");
-		clearInvocations(chatClient);
+		run("   \n\nexit\n", modelReplying("response"));
 
-		String input = "   \n\nexit\n";
-		Scanner scanner = new Scanner(new ByteArrayInputStream(input.getBytes()));
-		ByteArrayOutputStream output = new ByteArrayOutputStream();
-
-		ReplRunner.runRepl(chatClient, scanner, new PrintStream(output));
-
-		verify(chatClient, never()).prompt(anyString());
+		assertThat(prompts).isEmpty();
 	}
 
 	@Test
 	void nullResponseFromModelIsHandledGracefully() {
-		ChatClient chatClient = mock(ChatClient.class, RETURNS_DEEP_STUBS);
-		when(chatClient.prompt(anyString()).toolContext(any(Map.class)).call().content())
-				.thenReturn(null);
-		clearInvocations(chatClient);
+		String output = run("hello\nexit\n", modelReplying(null));
 
-		String input = "hello\nexit\n";
-		Scanner scanner = new Scanner(new ByteArrayInputStream(input.getBytes()));
-		ByteArrayOutputStream output = new ByteArrayOutputStream();
-
-		ReplRunner.runRepl(chatClient, scanner, new PrintStream(output));
-
-		assertThat(output.toString()).contains("[No response from model]");
+		assertThat(output).contains("[No response from model]");
 	}
 }

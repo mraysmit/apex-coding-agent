@@ -8,7 +8,7 @@ import dev.mars.apexcodingagent.tools.ApexSyntaxTool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.chat.client.advisor.ToolCallAdvisor;
+import org.springframework.ai.chat.client.advisor.ToolCallingAdvisor;
 import org.springframework.ai.chat.model.ChatModel;
 
 import java.util.List;
@@ -29,7 +29,7 @@ import java.util.Map;
  * <p>The LLM is equipped with {@link ApexSyntaxTool} so it can resolve any
  * APEX-specific keywords it encounters while reading the YAML.
  */
-public class ApexDescriptionService {
+public class ApexDescriptionService implements ApexRuleDescriber {
 
     private static final Logger log = LoggerFactory.getLogger(ApexDescriptionService.class);
 
@@ -47,6 +47,7 @@ public class ApexDescriptionService {
      * @param request the description request
      * @return structured description result
      */
+    @Override
     public DescriptionResult describe(DescriptionRequest request) {
         log.info("Starting APEX description for request: {}", request.requestId());
 
@@ -218,7 +219,7 @@ public class ApexDescriptionService {
                             can understand — no SpEL, no YAML jargon.
                             """)
                     .defaultTools(ApexSyntaxTool.builder().build())
-                    .defaultAdvisors(ToolCallAdvisor.builder().build())
+                    .defaultAdvisors(ToolCallingAdvisor.builder().build())
                     .build();
 
             return new ApexDescriptionService(client);

@@ -1,8 +1,6 @@
 package dev.mars.apexcodingagent.web;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import dev.mars.apexcodingagent.orchestration.ApexDescriptionService;
-import dev.mars.apexcodingagent.orchestration.ApexGenerationService;
 import dev.mars.apexcodingagent.orchestration.model.DescriptionRequest;
 import dev.mars.apexcodingagent.orchestration.model.DescriptionResult;
 import dev.mars.apexcodingagent.orchestration.model.GenerationRequest;
@@ -19,29 +17,38 @@ import java.nio.file.Path;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.function.Function;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 /**
  * Tests for the ApexGenerationController REST endpoints.
- * Uses standalone MockMvc with a mocked ApexGenerationService — no Spring context needed.
+ * Uses standalone MockMvc with lambda-backed generator/describer stubs — no Spring context needed.
  */
 class ApexGenerationControllerTest {
 
     MockMvc mockMvc;
     ObjectMapper objectMapper = new ObjectMapper();
-    ApexGenerationService generationService;
-    ApexDescriptionService descriptionService;
+    Function<GenerationRequest, GenerationResult> onGenerate = request -> {
+        throw new IllegalStateException("generate not stubbed");
+    };
+    Function<DescriptionRequest, DescriptionResult> onDescribe = request -> {
+        throw new IllegalStateException("describe not stubbed");
+    };
+    List<DescriptionRequest> describeRequests = new CopyOnWriteArrayList<>();
 
     @BeforeEach
     void setUp() {
-        generationService  = mock(ApexGenerationService.class);
-        descriptionService = mock(ApexDescriptionService.class);
-        ApexGenerationController controller = new ApexGenerationController(generationService, descriptionService);
+        ApexGenerationController controller = new ApexGenerationController(
+                request -> onGenerate.apply(request),
+                request -> {
+                    describeRequests.add(request);
+                    return onDescribe.apply(request);
+                });
         mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
     }
 
@@ -51,8 +58,7 @@ class ApexGenerationControllerTest {
     void generate_returnsJobIdAndRunningStatus() throws Exception {
         // Stub the service to return a successful result (async, so it won't
         // be called in the same request cycle, but we stub to prevent NPEs)
-        when(generationService.generate(any(GenerationRequest.class)))
-                .thenReturn(successResult("test-123"));
+        onGenerate = request -> successResult("test-123");
 
         String body = objectMapper.writeValueAsString(Map.of(
                 "requirements", "Create a discount rule for orders over $100",
@@ -70,8 +76,7 @@ class ApexGenerationControllerTest {
 
     @Test
     void generate_withHints_returnsJobId() throws Exception {
-        when(generationService.generate(any(GenerationRequest.class)))
-                .thenReturn(successResult("test-456"));
+        onGenerate = request -> successResult("test-456");
 
         String body = objectMapper.writeValueAsString(Map.of(
                 "requirements", "Eligibility check rule",
@@ -98,8 +103,7 @@ class ApexGenerationControllerTest {
     @Test
     void status_afterSubmit_returnsRunningOrCompleted() throws Exception {
         // Submit a job first — the async executor may or may not finish before poll
-        when(generationService.generate(any(GenerationRequest.class)))
-                .thenReturn(successResult("async-test"));
+        onGenerate = request -> successResult("async-test");
 
         String body = objectMapper.writeValueAsString(Map.of(
                 "requirements", "Simple validation rule",
@@ -125,8 +129,7 @@ class ApexGenerationControllerTest {
     void status_completedJob_containsFullResult() throws Exception {
         GenerationResult result = successResult("status-test");
 
-        when(generationService.generate(any(GenerationRequest.class)))
-                .thenReturn(result);
+        onGenerate = request -> result;
 
         String body = objectMapper.writeValueAsString(Map.of(
                 "requirements", "Full result test",
@@ -161,8 +164,9 @@ class ApexGenerationControllerTest {
 
     @Test
     void status_failedJob_containsError() throws Exception {
-        when(generationService.generate(any(GenerationRequest.class)))
-                .thenThrow(new RuntimeException("LLM service unavailable"));
+        onGenerate = request -> {
+            throw new RuntimeException("LLM service unavailable");
+        };
 
         String body = objectMapper.writeValueAsString(Map.of(
                 "requirements", "Failure test",
@@ -190,8 +194,7 @@ class ApexGenerationControllerTest {
 
     @Test
     void jobs_returnsListOfSubmittedJobs() throws Exception {
-        when(generationService.generate(any(GenerationRequest.class)))
-                .thenReturn(successResult("list-test"));
+        onGenerate = request -> successResult("list-test");
 
         // Submit two jobs
         for (int i = 0; i < 2; i++) {
@@ -291,7 +294,7 @@ class ApexGenerationControllerTest {
                 Instant.now()
         );
 
-        when(generationService.generate(any(GenerationRequest.class))).thenReturn(result);
+        onGenerate = request -> result;
 
         String body = objectMapper.writeValueAsString(Map.of(
                 "requirements", "Rule results test",
@@ -323,8 +326,7 @@ class ApexGenerationControllerTest {
     @Test
     void status_completedJob_omitsRuleResultsWhenEmpty() throws Exception {
         // No ruleResults in executionDetails
-        when(generationService.generate(any(GenerationRequest.class)))
-                .thenReturn(successResult("no-rule-results"));
+        onGenerate = request -> successResult("no-rule-results");
 
         String body = objectMapper.writeValueAsString(Map.of(
                 "requirements", "No rule results test",
@@ -365,7 +367,7 @@ class ApexGenerationControllerTest {
                 List.of("orderTotal", "customerTier")
         );
 
-        when(descriptionService.describe(any(DescriptionRequest.class))).thenReturn(descResult);
+        onDescribe = request -> descResult;
 
         String body = objectMapper.writeValueAsString(Map.of(
                 "yamlContent", "metadata:\n  id: discount-tiers\n  type: rule-config\nrules: []"
@@ -396,7 +398,7 @@ class ApexGenerationControllerTest {
                 "desc-focus-test", "VIP rule summary.", "VIP rule detail.",
                 List.of(), List.of("customerTier")
         );
-        when(descriptionService.describe(any(DescriptionRequest.class))).thenReturn(descResult);
+        onDescribe = request -> descResult;
 
         String body = objectMapper.writeValueAsString(Map.of(
                 "yamlContent",  "metadata:\n  id: test\nrules: []",
@@ -410,7 +412,10 @@ class ApexGenerationControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true));
 
-        verify(descriptionService).describe(any(DescriptionRequest.class));
+        assertThat(describeRequests).singleElement().satisfies(request -> {
+            assertThat(request.sampleJson()).isEqualTo("{\"customerTier\": \"VIP\"}");
+            assertThat(request.focusArea()).isEqualTo("explain only VIP rules");
+        });
     }
 
     @Test
@@ -428,8 +433,7 @@ class ApexGenerationControllerTest {
 
     @Test
     void describe_serviceFailure_returnsErrorInBody() throws Exception {
-        when(descriptionService.describe(any(DescriptionRequest.class)))
-                .thenReturn(DescriptionResult.failed("desc-fail", "Model returned empty response"));
+        onDescribe = request -> DescriptionResult.failed("desc-fail", "Model returned empty response");
 
         String body = objectMapper.writeValueAsString(Map.of(
                 "yamlContent", "metadata:\n  id: test\nrules: []"

@@ -2,15 +2,15 @@
 
 ## Project Overview
 
-This is an AI-powered APEX rules agent built with **Spring Boot 4.0.2** and **Spring AI 2.0.0-M2**. It generates, validates, and executes APEX YAML business rule configurations from natural language requirements, using an LLM with file system tools, grep, glob, shell access, and specialized APEX tools.
+This is an AI-powered APEX rules agent built with **Spring Boot 4.1.1** and **Spring AI 2.0.1**. It generates, validates, and executes APEX YAML business rule configurations from natural language requirements, using an LLM with file system tools, grep, glob, shell access, and specialized APEX tools.
 
 ## Tech Stack
 
-- **Java 25** (source level)
-- **Spring Boot 4.0.2**
-- **Spring AI 2.0.0-M2** (via BOM)
-- **Spring AI Agent Utils 0.4.2** (`org.springaicommunity:spring-ai-agent-utils`) — provides `FileSystemTools`, `GrepTool`, `GlobTool`, `ShellTools`
-- **OpenAI GPT-4o** as the backing model (configured via `spring.ai.openai-sdk`)
+- **Java 27** (source level)
+- **Spring Boot 4.1.1**
+- **Spring AI 2.0.1** (via BOM)
+- **Spring AI Agent Utils 0.12.0** (`org.springaicommunity:spring-ai-agent-utils`) — provides `FileSystemTools`, `GrepTool`, `GlobTool`, `ShellTools`
+- **OpenAI GPT-4o** as the backing model (configured via `spring.ai.openai`)
 - **Maven** as the build tool (with Maven Wrapper)
 
 ## Architecture
@@ -19,7 +19,7 @@ This is an AI-powered APEX rules agent built with **Spring Boot 4.0.2** and **Sp
 - A `ChatClient` is built with:
   - A system prompt injected with the current working directory.
   - Default tools: `FileSystemTools`, `GrepTool`, `GlobTool`, `ShellTools`.
-  - `ToolCallAdvisor` for autonomous tool invocation (conversation history disabled at advisor level).
+  - `ToolCallingAdvisor` for autonomous tool invocation (conversation history disabled at advisor level).
   - `MessageChatMemoryAdvisor` with a 50-message sliding window via `MessageWindowChatMemory`.
 - A REPL loop reads user input from `System.in`, sends it to the model with tool context (`workingDir`), and prints the response.
 - The user types `exit` to quit.
@@ -29,6 +29,7 @@ This is an AI-powered APEX rules agent built with **Spring Boot 4.0.2** and **Sp
 - Package root: `dev.mars.apexcodingagent`
 - `Application` is the entry point only; beans are wired in `AgentConfig`, the REPL lives in `ReplRunner`.
 - Request/result records live in `orchestration.model`.
+- In tests, use hand-written fakes or lambdas — no mocking libraries. Depend on small interfaces (e.g. `ApexRuleGenerator`, `ApexRuleDescriber`) so collaborators can be swapped in tests.
 - Use Spring AI's fluent `ChatClient.Builder` API for configuration.
 - System prompts live in `src/main/resources/prompts/` with `{{placeholder}}` substitution, not inline in code.
 - Tools are created via their builder patterns (e.g., `FileSystemTools.builder().build()`).
@@ -56,7 +57,7 @@ export OPENAI_API_KEY=your-key-here
 | Dependency | Purpose |
 |---|---|
 | `spring-boot-starter` | Core Spring Boot (no web server) |
-| `spring-ai-starter-model-openai-sdk` | OpenAI model integration via Spring AI |
+| `spring-ai-starter-model-openai` | OpenAI model integration via Spring AI |
 | `spring-ai-agent-utils` | Community-provided agent tools (file I/O, grep, glob, shell) |
 | `spring-boot-starter-test` | Testing support |
 

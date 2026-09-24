@@ -2,7 +2,7 @@
 
 An AI-powered APEX rules agent with both a **Web UI** and a **CLI REPL**. Generate, validate, and execute APEX YAML business rule configurations from natural language requirements.
 
-Built with Spring Boot 4.0.2 and Spring AI 2.0.0-M2.
+Built with Spring Boot 4.1.1 and Spring AI 2.0.1.
 
 ## Quick Start
 
@@ -63,12 +63,12 @@ Key properties in `src/main/resources/application.yaml`:
 | `app.repl.enabled` | `false` | Enable the interactive CLI REPL (disables web-only mode) |
 | `apex.knowledge.enabled` | `false` | Enable RAG vector store for APEX knowledge base |
 | `apex.knowledge.project-root` | `../apex-rules-engine` | Path to the APEX rules engine project |
-| `spring.ai.openai-sdk.chat.options.model` | `gpt-4o` | LLM model to use |
+| `spring.ai.openai.chat.options.model` | `gpt-4o` | LLM model to use |
 | `server.port` | `8080` | Web server port (standard Spring Boot property) |
 
 ## Prerequisites
 
-- Java 25+
+- Java 27+
 - [OpenAI API key](https://platform.openai.com/api-keys)
 - The sibling [`apex-rules-engine`](../apex-rules-engine) project, built and installed to your local Maven repository. `apex-core` and `apex-compiler` are `1.0-SNAPSHOT` dependencies that aren't published anywhere else, so the build fails without them:
   ```bash
@@ -89,7 +89,7 @@ Key properties in `src/main/resources/application.yaml`:
 | `GlobTool` | Find files by name/path pattern |
 | `ShellTools` | Run shell commands |
 | `MessageWindowChatMemory` | 50-message sliding window for conversational context |
-| `ToolCallAdvisor` | Lets the model autonomously chain tool calls |
+| `ToolCallingAdvisor` | Lets the model autonomously chain tool calls |
 
 The **Web UI** is served from `src/main/resources/static/index.html` and communicates with the backend via the `ApexGenerationController` REST endpoint.
 
@@ -99,10 +99,10 @@ The optional **REPL** loop reads input, sends it to GPT-4o with tool context, an
 
 | Library | Version |
 |---|---|
-| Spring Boot | 4.0.2 |
-| Spring AI | 2.0.0-M2 |
-| [spring-ai-agent-utils](https://github.com/springaicommunity/spring-ai-agent-utils) | 0.4.2 |
-| Java | 25 |
+| Spring Boot | 4.1.1 |
+| Spring AI | 2.0.1 |
+| [spring-ai-agent-utils](https://github.com/springaicommunity/spring-ai-agent-utils) | 0.12.0 |
+| Java | 27 |
 
 ## Tests
 

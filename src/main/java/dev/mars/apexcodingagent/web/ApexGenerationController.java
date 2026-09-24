@@ -1,7 +1,7 @@
 package dev.mars.apexcodingagent.web;
 
-import dev.mars.apexcodingagent.orchestration.ApexDescriptionService;
-import dev.mars.apexcodingagent.orchestration.ApexGenerationService;
+import dev.mars.apexcodingagent.orchestration.ApexRuleDescriber;
+import dev.mars.apexcodingagent.orchestration.ApexRuleGenerator;
 import dev.mars.apexcodingagent.orchestration.model.DescriptionRequest;
 import dev.mars.apexcodingagent.orchestration.model.DescriptionResult;
 import dev.mars.apexcodingagent.orchestration.model.GenerationRequest;
@@ -29,13 +29,13 @@ public class ApexGenerationController {
     private static final int MAX_JOBS = 100;
     private static final long JOB_TTL_MILLIS = TimeUnit.HOURS.toMillis(1);
 
-    private final ApexGenerationService generationService;
-    private final ApexDescriptionService descriptionService;
+    private final ApexRuleGenerator generationService;
+    private final ApexRuleDescriber descriptionService;
     private final ExecutorService executor = Executors.newFixedThreadPool(2);
     private final ConcurrentHashMap<String, JobEntry> jobs = new ConcurrentHashMap<>();
 
-    public ApexGenerationController(ApexGenerationService generationService,
-                                    ApexDescriptionService descriptionService) {
+    public ApexGenerationController(ApexRuleGenerator generationService,
+                                    ApexRuleDescriber descriptionService) {
         this.generationService = generationService;
         this.descriptionService = descriptionService;
     }

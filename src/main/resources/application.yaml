@@ -2,7 +2,7 @@ spring:
   application:
     name: apex-coding-agent
   ai:
-    openai-sdk:
+    openai:
       api-key: ${OPENAI_API_KEY}
       chat:
         options:

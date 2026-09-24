@@ -44,13 +44,13 @@ The LLM orchestrates these tools autonomously, following a strict plan → retri
 
 | Component | Technology | Version |
 |---|---|---|
-| Runtime | Java | 25 |
-| Framework | Spring Boot | 4.0.2 |
-| AI Framework | Spring AI | 2.0.0-M2 |
-| LLM | OpenAI GPT-4o | via `spring-ai-starter-model-openai-sdk` |
+| Runtime | Java | 27 |
+| Framework | Spring Boot | 4.1.1 |
+| AI Framework | Spring AI | 2.0.1 |
+| LLM | OpenAI GPT-4o | via `spring-ai-starter-model-openai` |
 | Embeddings | OpenAI `text-embedding-3-small` | via same SDK |
 | Vector Store | Spring AI `SimpleVectorStore` | In-memory with JSON persistence |
-| Agent Tools | `spring-ai-agent-utils` | 0.4.2 (FileSystem, Grep, Glob, Shell) |
+| Agent Tools | `spring-ai-agent-utils` | 0.12.0 (FileSystem, Grep, Glob, Shell) |
 | Rules Engine | `apex-core` + `apex-compiler` | 1.0-SNAPSHOT (local install) |
 | Build | Maven | with Maven Wrapper |
 | Web UI | Static HTML/CSS/JS | served by Spring Boot embedded Tomcat |
@@ -117,7 +117,7 @@ Defined in `Application.chatClient()`. This is the conversational client used by
 - `GenerateApexRules` — Delegates to the generation pipeline
 
 **Advisors:**
-- `ToolCallAdvisor` (with `conversationHistoryEnabled=false`)
+- `ToolCallingAdvisor` (with `conversationHistoryEnabled=false`)
 - `MessageChatMemoryAdvisor` (50-message sliding window)
 
 **Key design choice:** This client includes `GenerateApexRules` so the user can say "generate rules for credit scoring" and the REPL agent will delegate to the pipeline.
@@ -140,7 +140,7 @@ Defined inside `ApexGenerationService.Builder.build()`. This is the specialist c
 - `MessageChatMemoryAdvisor` (stateless per-request, no conversation leakage)
 
 **Advisors:**
-- `ToolCallAdvisor` (with `conversationHistoryEnabled=true` — required for OpenAI multi-turn tool calls)
+- `ToolCallingAdvisor` (with `conversationHistoryEnabled=true` — required for OpenAI multi-turn tool calls)
 
 **Why two clients?** Builder isolation. Early versions had a bug where both clients shared the same `ChatClient.Builder`, causing auto-configured advisors to leak between them. The APEX client is now built from `ChatClient.builder(chatModel)` (fresh) rather than `builder.clone()`.
 
@@ -208,7 +208,7 @@ The LLM follows a 6-step workflow encoded in the system prompt (`apex-generation
 5. **FIX** — If validation fails, read error classifications and make targeted fixes
 6. **PACKAGE** — Format the final response with labeled sections for the OutputPackager
 
-This all happens in a single LLM turn with multiple tool calls. The `ToolCallAdvisor` handles the tool execution loop automatically — the LLM decides which tools to call and in what order.
+This all happens in a single LLM turn with multiple tool calls. The `ToolCallingAdvisor` handles the tool execution loop automatically — the LLM decides which tools to call and in what order.
 
 ---
 
@@ -550,7 +550,7 @@ The `index.html` page provides:
 ```yaml
 spring:
   ai:
-    openai-sdk:
+    openai:
       api-key: ${OPENAI_API_KEY}         # Required — OpenAI API key
       chat:
         options:
@@ -584,7 +584,7 @@ apex:
 
 ### Prerequisites
 
-1. Java 25+
+1. Java 27+
 2. The `apex-rules-engine` project built and installed locally:
    ```bash
    cd ../apex-rules-engine
